@@ -30,8 +30,9 @@ use crate::{
     mdx_plugin_recma_jsx_rewrite::{mdx_plugin_recma_jsx_rewrite, Options as RewriteOptions},
     swc::{parse_esm, parse_expression, serialize},
     swc_util_build_jsx::{swc_util_build_jsx, Options as BuildOptions},
+    markdown::mdast,
+    markdown::{to_mdast, Constructs, Location, ParseOptions},
 };
-use markdown::{to_mdast, Constructs, Location, ParseOptions};
 
 pub use crate::configuration::{
     HastNode, MdastNode, MdxConstructs, MdxParseOptions, Options, PluginOptions, RecmaProgram,
@@ -160,4 +161,58 @@ pub fn compile_with_plugins(
     }
 
     Ok(serialize(&mut program.module, Some(&program.comments)))
+}
+
+
+
+
+
+pub fn mdast_visit_mut<Visitor>(node: &mut mdast::Node, visitor: Visitor)
+where
+    Visitor: FnMut(&mut mdast::Node),
+{
+    mdast_visit_mut_impl(node, visitor);
+}
+
+pub fn mdast_visit_mut_impl<Visitor>(node: &mut mdast::Node, mut visitor: Visitor) -> Visitor
+where
+    Visitor: FnMut(&mut mdast::Node),
+{
+    visitor(node);
+
+    if let Some(children) = node.children_mut() {
+        let mut index = 0;
+        while index < children.len() {
+            let child = &mut children[index];
+            visitor = mdast_visit_mut_impl(child, visitor);
+            index += 1;
+        }
+    }
+
+    visitor
+}
+
+pub fn hast_visit_mut<Visitor>(node: &mut hast::Node, visitor: Visitor)
+where
+    Visitor: FnMut(&mut hast::Node),
+{
+    hast_visit_mut_impl(node, visitor);
+}
+
+pub fn hast_visit_mut_impl<Visitor>(node: &mut hast::Node, mut visitor: Visitor) -> Visitor
+where
+    Visitor: FnMut(&mut hast::Node),
+{
+    visitor(node);
+
+    if let Some(children) = node.children_mut() {
+        let mut index = 0;
+        while index < children.len() {
+            let child = &mut children[index];
+            visitor = hast_visit_mut_impl(child, visitor);
+            index += 1;
+        }
+    }
+
+    visitor
 }

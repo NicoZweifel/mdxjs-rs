@@ -57,14 +57,14 @@ fn main() -> Result<(), String> {
     Ok(())
 }
 
-fn mdast_visit_mut<Visitor>(node: &mut mdast::Node, visitor: Visitor)
+pub fn mdast_visit_mut<Visitor>(node: &mut mdast::Node, visitor: Visitor)
 where
     Visitor: FnMut(&mut mdast::Node),
 {
     mdast_visit_mut_impl(node, visitor);
 }
 
-fn mdast_visit_mut_impl<Visitor>(node: &mut mdast::Node, mut visitor: Visitor) -> Visitor
+pub fn mdast_visit_mut_impl<Visitor>(node: &mut mdast::Node, mut visitor: Visitor) -> Visitor
 where
     Visitor: FnMut(&mut mdast::Node),
 {
@@ -82,14 +82,14 @@ where
     visitor
 }
 
-fn hast_visit_mut<Visitor>(node: &mut hast::Node, visitor: Visitor)
+pub fn hast_visit_mut<Visitor>(node: &mut hast::Node, visitor: Visitor)
 where
     Visitor: FnMut(&mut hast::Node),
 {
     hast_visit_mut_impl(node, visitor);
 }
 
-fn hast_visit_mut_impl<Visitor>(node: &mut hast::Node, mut visitor: Visitor) -> Visitor
+pub fn hast_visit_mut_impl<Visitor>(node: &mut hast::Node, mut visitor: Visitor) -> Visitor
 where
     Visitor: FnMut(&mut hast::Node),
 {

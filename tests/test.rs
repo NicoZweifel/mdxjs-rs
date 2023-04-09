@@ -1,6 +1,9 @@
 extern crate mdxjs;
-use mdxjs::{compile, JsxRuntime, Options};
+use mdxjs::{compile, compile_with_plugins, JsxRuntime, Options, hast_visit_mut, hast };
 use pretty_assertions::assert_eq;
+use mdxjs::{HastNode, PluginOptions };
+use std::rc::Rc;
+
 
 #[test]
 fn simple() -> Result<(), String> {
@@ -23,6 +26,48 @@ export default MDXContent;
 
     Ok(())
 }
+
+#[test]
+fn plugin_hast_transform() -> Result<(), String> {
+    assert_eq!(
+       compile_with_plugins("# should work ", &Options::default(), &PluginOptions{
+                experimental_mdast_transforms: None,
+                experimental_hast_transforms: Some(vec![Rc::new(|root: &mut HastNode| {
+                    hast_visit_mut(root, |n| {
+                        if let hast::Node::Element(e) = n {
+                                if e.tag_name == "h1" {
+                                e.tag_name = "h2".into();
+                            }
+                        };
+                    });
+                    Ok(())
+                })]),
+                experimental_recma_transforms:None
+       })
+?,
+        "import { jsx as _jsx } from \"react/jsx-runtime\";
+function _createMdxContent(props) {
+    const _components = Object.assign({
+        h2: \"h2\"
+    }, props.components);
+    return _jsx(_components.h2, {
+        children: \"should work\"
+    });
+}
+function MDXContent(props = {}) {
+    const { wrapper: MDXLayout  } = props.components || {};
+    return MDXLayout ? _jsx(MDXLayout, Object.assign({}, props, {
+        children: _jsx(_createMdxContent, props)
+    })) : _createMdxContent(props);
+}
+export default MDXContent;
+",
+        "should work",
+    );
+
+    Ok(())
+}
+
 
 #[test]
 fn development() -> Result<(), String> {
