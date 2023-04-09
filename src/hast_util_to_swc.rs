@@ -282,13 +282,13 @@ fn transform_mdx_jsx_element(
                             raw: None,
                         })))
                     }
-                    Some(hast::AttributeValue::Expression(value, stops)) => {
+                    Some(hast::AttributeValue::Expression(expression)) => {
                         Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {
                             expr: JSXExpr::Expr(
                                 parse_expression_to_tree(
-                                    value,
+                                    &expression.value,
                                     &MdxExpressionKind::AttributeValueExpression,
-                                    stops,
+                                    &expression.stops,
                                     context.location,
                                 )?
                                 .unwrap(),
@@ -305,7 +305,7 @@ fn transform_mdx_jsx_element(
                     value,
                 })
             }
-            hast::AttributeContent::Expression(value, stops) => {
+            hast::AttributeContent::Expression { value, stops } => {
                 let expr = parse_expression_to_tree(
                     value,
                     &MdxExpressionKind::AttributeExpression,
@@ -669,6 +669,7 @@ mod tests {
     use super::*;
     use crate::hast;
     use crate::hast_util_to_swc::{hast_util_to_swc, Program};
+    use crate::markdown::mdast;
     use crate::swc::serialize;
     use pretty_assertions::assert_eq;
     use swc_core::ecma::ast::{
@@ -816,7 +817,7 @@ mod tests {
                 .module,
                 None
             ),
-            "<a >{\"a\"}</a>;\n",
+            "<a>{\"a\"}</a>;\n",
             "should support an `Element` w/ children",
         );
 
@@ -835,7 +836,7 @@ mod tests {
                 .module,
                 None
             ),
-            "<svg />;\n",
+            "<svg/>;\n",
             "should support an `Element` in the SVG space",
         );
 
@@ -897,7 +898,7 @@ mod tests {
                 .module,
                 None
             ),
-            "<a />;\n",
+            "<a/>;\n",
             "should support an `Element` w/ a boolean (false) attribute",
         );
 
@@ -1034,7 +1035,7 @@ mod tests {
                 .module,
                 None
             ),
-            "<a />;\n",
+            "<a/>;\n",
             "should support an `MdxElement` (element, no children)",
         );
         assert_eq!(
@@ -1055,7 +1056,7 @@ mod tests {
                 .module,
                 None
             ),
-            "<a >{\"b\"}</a>;\n",
+            "<a>{\"b\"}</a>;\n",
             "should support an `MdxElement` (element, children)",
         );
 
@@ -1079,7 +1080,7 @@ mod tests {
                 .module,
                 None
             ),
-            "<a:b />;\n",
+            "<a:b/>;\n",
             "should support an `MdxElement` (element, namespace id)",
         );
 
@@ -1098,7 +1099,7 @@ mod tests {
                 .module,
                 None
             ),
-            "<a.b.c />;\n",
+            "<a.b.c/>;\n",
             "should support an `MdxElement` (element, member expression)",
         );
 
@@ -1117,7 +1118,7 @@ mod tests {
                 .module,
                 None
             ),
-            "<svg />;\n",
+            "<svg/>;\n",
             "should support an `MdxElement` (element, `<svg>`)",
         );
 
@@ -1199,7 +1200,12 @@ mod tests {
                         name: Some("a".into()),
                         attributes: vec![hast::AttributeContent::Property(hast::MdxJsxAttribute {
                             name: "b".into(),
-                            value: Some(hast::AttributeValue::Expression("c".into(), vec![]))
+                            value: Some(hast::AttributeValue::Expression(
+                                mdast::AttributeValueExpression {
+                                    value: "c".into(),
+                                    stops: vec![]
+                                }
+                            ))
                         })],
                         children: vec![],
                         position: None,
@@ -1220,7 +1226,12 @@ mod tests {
                     name: Some("a".into()),
                     attributes: vec![hast::AttributeContent::Property(hast::MdxJsxAttribute {
                         name: "b".into(),
-                        value: Some(hast::AttributeValue::Expression("!".into(), vec![]))
+                        value: Some(hast::AttributeValue::Expression(
+                            mdast::AttributeValueExpression {
+                                value: "!".into(),
+                                stops: vec![]
+                            }
+                        ))
                     })],
                     children: vec![],
                     position: None,
@@ -1237,7 +1248,10 @@ mod tests {
                 &mut hast_util_to_swc(
                     &hast::Node::MdxJsxElement(hast::MdxJsxElement {
                         name: Some("a".into()),
-                        attributes: vec![hast::AttributeContent::Expression("...b".into(), vec![])],
+                        attributes: vec![hast::AttributeContent::Expression {
+                            value: "...b".into(),
+                            stops: vec![]
+                        }],
                         children: vec![],
                         position: None,
                     }),
@@ -1255,7 +1269,7 @@ mod tests {
             hast_util_to_swc(
                 &hast::Node::MdxJsxElement(hast::MdxJsxElement {
                     name: Some("a".into()),
-                    attributes: vec![hast::AttributeContent::Expression("...b,c".into(), vec![])],
+                    attributes: vec![hast::AttributeContent::Expression { value: "...b,c".into(), stops: vec![] } ],
                     children: vec![],
                     position: None,
                 }),
