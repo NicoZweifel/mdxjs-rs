@@ -1,7 +1,7 @@
 extern crate mdxjs;
 
 use markdown::mdast;
-use mdxjs::hast;
+use mdxjs::{hast, hast_visit_mut, mdast_visit_mut};
 use mdxjs::{HastNode, MdastNode, Options, PluginOptions, RecmaProgram};
 use std::rc::Rc;
 use swc_core::common::{Span, SyntaxContext};
@@ -42,7 +42,7 @@ fn main() -> Result<(), String> {
                     body.push(estree::ModuleItem::Stmt(estree::Stmt::Expr(
                         estree::ExprStmt {
                             expr: Box::new(estree::Expr::Ident(estree::Ident::from((
-                                JsWord::from("hello"),
+                               JsWord::from("hello"),
                                 SyntaxContext::empty(),
                             )))),
                             span: Span::default(),
@@ -57,52 +57,4 @@ fn main() -> Result<(), String> {
     Ok(())
 }
 
-pub fn mdast_visit_mut<Visitor>(node: &mut mdast::Node, visitor: Visitor)
-where
-    Visitor: FnMut(&mut mdast::Node),
-{
-    mdast_visit_mut_impl(node, visitor);
-}
 
-pub fn mdast_visit_mut_impl<Visitor>(node: &mut mdast::Node, mut visitor: Visitor) -> Visitor
-where
-    Visitor: FnMut(&mut mdast::Node),
-{
-    visitor(node);
-
-    if let Some(children) = node.children_mut() {
-        let mut index = 0;
-        while index < children.len() {
-            let child = &mut children[index];
-            visitor = mdast_visit_mut_impl(child, visitor);
-            index += 1;
-        }
-    }
-
-    visitor
-}
-
-pub fn hast_visit_mut<Visitor>(node: &mut hast::Node, visitor: Visitor)
-where
-    Visitor: FnMut(&mut hast::Node),
-{
-    hast_visit_mut_impl(node, visitor);
-}
-
-pub fn hast_visit_mut_impl<Visitor>(node: &mut hast::Node, mut visitor: Visitor) -> Visitor
-where
-    Visitor: FnMut(&mut hast::Node),
-{
-    visitor(node);
-
-    if let Some(children) = node.children_mut() {
-        let mut index = 0;
-        while index < children.len() {
-            let child = &mut children[index];
-            visitor = hast_visit_mut_impl(child, visitor);
-            index += 1;
-        }
-    }
-
-    visitor
-}

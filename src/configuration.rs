@@ -1,5 +1,6 @@
 //! Configuration.
 
+use crate::hast;
 use crate::mdx_plugin_recma_document::JsxRuntime;
 use std::rc::Rc;
 
@@ -166,6 +167,7 @@ type MdastPlugin = Rc<dyn Fn(&mut MdastNode) -> Result<(), String> + 'static>;
 type HastPlugin = Rc<dyn Fn(&mut HastNode) -> Result<(), String> + 'static>;
 
 type RecmaPlugin = Rc<dyn Fn(&mut RecmaProgram) -> Result<(), String> + 'static>;
+
 
 pub struct PluginOptions {
     pub experimental_mdast_transforms: Option<Vec<MdastPlugin>>,

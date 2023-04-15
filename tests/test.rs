@@ -1,9 +1,12 @@
 extern crate mdxjs;
-use mdxjs::{compile, compile_with_plugins, JsxRuntime, Options, hast_visit_mut, hast };
+use markdown::mdast;
+use mdxjs::{compile, compile_with_plugins, JsxRuntime, Options,  mdast_visit_mut, RecmaProgram, HastNode, hast_visit_mut, hast };
 use pretty_assertions::assert_eq;
-use mdxjs::{HastNode, PluginOptions };
 use std::rc::Rc;
-
+use mdxjs::{ MdastNode, PluginOptions };
+use swc_core::common::{Span, SyntaxContext};
+use swc_core::ecma::ast as estree;
+use swc_core::ecma::atoms::JsWord;
 
 #[test]
 fn simple() -> Result<(), String> {
@@ -27,10 +30,30 @@ export default MDXContent;
     Ok(())
 }
 
+
+const PLUGIN_RESULT: &str=  "import { jsx as _jsx } from \"react/jsx-runtime\";
+function _createMdxContent(props) {
+    const _components = Object.assign({
+        h2: \"h2\"
+    }, props.components);
+    return _jsx(_components.h2, {
+        children: \"header\"
+    });
+}
+function MDXContent(props = {}) {
+    const { wrapper: MDXLayout  } = props.components || {};
+    return MDXLayout ? _jsx(MDXLayout, Object.assign({}, props, {
+        children: _jsx(_createMdxContent, props)
+    })) : _createMdxContent(props);
+}
+export default MDXContent;
+";
+
+
 #[test]
 fn plugin_hast_transform() -> Result<(), String> {
     assert_eq!(
-       compile_with_plugins("# should work ", &Options::default(), &PluginOptions{
+       compile_with_plugins("# header", &Options::default(), &PluginOptions{
                 experimental_mdast_transforms: None,
                 experimental_hast_transforms: Some(vec![Rc::new(|root: &mut HastNode| {
                     hast_visit_mut(root, |n| {
@@ -45,13 +68,65 @@ fn plugin_hast_transform() -> Result<(), String> {
                 experimental_recma_transforms:None
        })
 ?,
-        "import { jsx as _jsx } from \"react/jsx-runtime\";
+ PLUGIN_RESULT,
+        "should replace h1 with h2 by using mdast transform",
+    );
+
+    Ok(())
+}
+#[test]
+fn plugin_mdast_transform() -> Result<(), String> {
+    assert_eq!(
+       compile_with_plugins("# header", &Options::default(), &PluginOptions{
+                experimental_mdast_transforms:  Some(vec![Rc::new(|root: &mut MdastNode| {
+                    mdast_visit_mut(root, |n| {
+                        if let mdast::Node::Heading(e) = n {
+                                if e.depth == 1 {
+                                e.depth = 2;
+                            }
+                        };
+                    });
+                    Ok(())
+                })]),
+                experimental_hast_transforms:      None          ,
+                experimental_recma_transforms:None
+       })
+?, PLUGIN_RESULT,
+        "should replace h1 with h2 by using mdast transform",
+    );
+
+    Ok(())
+}
+
+#[test]
+fn plugin_ecma_transform() -> Result<(), String> {
+    assert_eq!(
+       compile_with_plugins("# header", &Options::default(), &PluginOptions{
+                experimental_mdast_transforms: None,
+                experimental_hast_transforms:None,
+                 experimental_recma_transforms: Some(vec![Rc::new(|program: &mut RecmaProgram| {
+                    let body = &mut program.module.body;
+                    body.push(estree::ModuleItem::Stmt(estree::Stmt::Expr(
+                        estree::ExprStmt {
+                            expr: Box::new(estree::Expr::Ident(estree::Ident::from((
+                               JsWord::from("hello"),
+                                SyntaxContext::empty(),
+                            )))),
+                            span: Span::default(),
+                        },
+                    )));
+                    Ok(())
+                })])
+
+       })
+?,
+ "import { jsx as _jsx } from \"react/jsx-runtime\";
 function _createMdxContent(props) {
     const _components = Object.assign({
-        h2: \"h2\"
+        h1: \"h1\"
     }, props.components);
-    return _jsx(_components.h2, {
-        children: \"should work\"
+    return _jsx(_components.h1, {
+        children: \"header\"
     });
 }
 function MDXContent(props = {}) {
@@ -61,13 +136,13 @@ function MDXContent(props = {}) {
     })) : _createMdxContent(props);
 }
 export default MDXContent;
+hello;
 ",
-        "should work",
+        "Should include hello",
     );
 
     Ok(())
 }
-
 
 #[test]
 fn development() -> Result<(), String> {

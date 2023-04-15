@@ -13,8 +13,8 @@
 
 extern crate markdown;
 
-mod configuration;
 pub mod hast;
+mod configuration;
 mod hast_util_to_swc;
 mod mdast_util_to_hast;
 mod mdx_plugin_recma_document;
@@ -22,6 +22,7 @@ mod mdx_plugin_recma_jsx_rewrite;
 mod swc;
 mod swc_util_build_jsx;
 mod swc_utils;
+
 
 use crate::{
     hast_util_to_swc::hast_util_to_swc,
